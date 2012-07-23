@@ -12,10 +12,10 @@ except ImportError:
 kw = {
     'name': "genetic_algorithm",
     'version': "{{ ___VERSION___ }}",
-    'description': "A set of utilities for use with HDF5/PyTables",
+    'description': "A simple Genetic algorithm library",
     'author': "Ryan Pattison",
     'author_email': "ryan.m.pattison@gmail.com",
-    'url': "https://github.com/rpattiso/python___genetic_algorithm",
+    'url': "https://github.com/rpattiso/python__genetic_algorithm",
     'license': "MIT License",
     'packages': ['genetic_algorithm'],
     'cmdclass': dict(build_py=build_py),
@@ -34,7 +34,7 @@ if hasattr(distutils.core, 'setup_keywords'):
             'Topic :: Software Development :: Libraries :: Python Modules'
           ]
     if 'download_url' in distutils.core.setup_keywords:
-        kw['download_url'] = 'https://github.com/rpattiso/python___genetic_algorithm/'\
+        kw['download_url'] = 'https://github.com/rpattiso/python__genetic_algorithm/'\
                 'tarball/master'
 
 distutils.core.setup(**kw)
