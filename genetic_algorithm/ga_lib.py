@@ -22,7 +22,7 @@ def tournament_select(tournament_size, maximize=False):
             tournament = set()
             selectable = list(range(len(individuals)))
             while len(tournament) < tournament_size:
-                index = int( round(ga.random_gen.frand() * (len(selectable) - 1) ) )
+                index = int( round(ga.random_gen.random() * (len(selectable) - 1) ) )
                 tournament.add(selectable[index])
                 del selectable[index]
 

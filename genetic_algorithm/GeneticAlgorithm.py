@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from pyvpr.vpr_ext import UniformRandomGenerator
+import random
 
 class Individual(object):
     id_counter = 0
@@ -16,9 +16,9 @@ class Individual(object):
 class GeneticAlgorithm(object):
     def __init__(self, initialize, population_size, crossover,
                 mutate, select, evaluate, replace, stop_criteria,
-                maximize=False, verbose=True, test=True):
+                maximize=False, verbose=True, test=True, random_generator=random):
 
-        self.random_gen = UniformRandomGenerator()
+        self.random_gen = random_generator
         self.population_size = population_size
         self.individuals = list()
         self.next_generation = list()
@@ -120,9 +120,10 @@ class GeneticAlgorithm(object):
     def evaluate(self, needs_evaluated):
         if self.verbose:
             print '[Genetic Algorithm] evaluate:'
-        self._evaluate(self, needs_evaluated)
+        evaled = self._evaluate(self, needs_evaluated)
         if self.test:
             self._test_evaluate(needs_evaluated)
+        return evaled
 
     def _test_evaluate(self, needs_evaluated):
         assert(all([s.fitness is not None for s in needs_evaluated]))
