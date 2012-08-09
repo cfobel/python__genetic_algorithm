@@ -2,6 +2,7 @@
 
 import random
 
+
 class Individual(object):
     id_counter = 0
     def __init__(self, chromosome, id_=None, fitness=None):
@@ -13,19 +14,61 @@ class Individual(object):
         else:
             self.id_ = id_
 
+#TODO simplify this.
+# push some functionality into the Ga.run loop method
+# consider breaking the loops in selection loop and
+# Generation loop to configure.
+def SimpleRunLoop(Ga):
+    Ga.initialize()
+    if Ga.verbose:
+        Ga.log()
+
+    yield Ga
+
+    while True: # Generation Loop
+        Ga.generation += 1
+        Ga.evaluate(Ga.individuals)
+        if Ga.stop_criteria():
+            break
+
+        Ga.selection = 0
+        while True: # Selection Loop
+            selection = Ga.select(Ga._crossover.nary)
+            children = Ga.crossover(selection)
+            children = Ga.mutate(selection, children)
+            if Ga.replace(selection, children):
+                break
+            Ga.selection += 1
+        # end Selection Loop
+
+        yield Ga
+        if Ga.test:
+            Ga._test_iter()
+
+        Ga.individuals = Ga.next_generation
+        Ga.next_generation = list()
+    # end Generation Loop
+
+
 class GeneticAlgorithm(object):
     def __init__(self, initialize, population_size, crossover,
                 mutate, select, evaluate, replace, stop_criteria,
-                maximize=False, verbose=True, test=True, random_generator=random):
+                runloop=SimpleRunLoop, listener=None,
+                maximize=False, verbose=True,
+                test=True, seed=0):
 
-        self.random_gen = random_generator
+        random.seed(seed)
+        self.init_seed = seed
+        self.random_gen = random
         self.population_size = population_size
         self.individuals = list()
         self.next_generation = list()
         self.generation = -1
         self.selection = 0
         self.maximize = maximize
+        self.listener = listener
 
+        self._runloop = runloop
         self._mutate = mutate
         self._crossover = crossover
         self._select = select
@@ -37,9 +80,19 @@ class GeneticAlgorithm(object):
         self.verbose = verbose
         self.test = test
 
+    def random(self):
+        return self.random_gen.random()
+
+    def callback(self, caller, *args, **kwargs):
+        self.__log('Callback triggered', caller)
+        if self.listener:
+            self.listener(caller, *args, **kwargs)
+
     def verify(self):
-        assert(not self.individuals or all([isinstance(s, Individual) for s in self.individuals]))
-        assert(not self.next_generation or all([isinstance(s, Individual) for s in self.next_generation]))
+        assert(not self.individuals or all(
+            [isinstance(s, Individual) for s in self.individuals]))
+        assert(not self.next_generation or all([
+            isinstance(s, Individual) for s in self.next_generation]))
         assert(self.population_size > 0)
         assert(self.generation >= -1)
         assert(self.selection >= 0)
@@ -47,29 +100,32 @@ class GeneticAlgorithm(object):
         assert(self._stop_criteria)
         assert(self._initialize)
 
+    def __log(self, *args, **kwargs):
+        if self.verbose:
+            print('[' + self.__class__.__name__ + ']:' + ','.join(
+                map(str, args)))
 
     def _log(self):
-        print '[Genetic Algorithm]: population_size', self.population_size
-        print '[Genetic Algorithm]: individuals fitness', [s.fitness for s in self.individuals]
-        print '[Genetic Algorithm]: next_generation fitness', [s.fitness for s in self.next_generation]
-        print '[Genetic Algorithm]: generation', self.generation
-        print '[Genetic Algorithm]: selection', self.selection
-
-        print '[Genetic Algorithm]: verbose', self.verbose
-        print '[Genetic Algorithm]: test', self.test
-
-        print '[Genetic Algorithm]: mutate', self._mutate
-        print '[Genetic Algorithm]: select', self._select
-        print '[Genetic Algorithm]: evaluate', self._evaluate
-        print '[Genetic Algorithm]: crossover', self._crossover
-        print '[Genetic Algorithm]: replace', self._replace
-        print '[Genetic Algorithm]: stop_criteria', self._stop_criteria
-        print '[Genetic Algorithm]: initialize', self._initialize
-
+        self.__log('population size', self.population_size)
+        self.__log('individuals fitness',
+                [s.fitness for s in self.individuals])
+        self.__log('next generation fitness',
+            [s.fitness for s in self.next_generation])
+        self.__log('generation', self.generation)
+        self.__log('selection', self.selection)
+        self.__log('verbose', self.verbose)
+        self.__log('test', self.test)
+        self.__log('mutate', self._mutate)
+        self.__log('select', self._select)
+        self.__log('evaluate', self._evaluate)
+        self.__log('crossover', self._crossover)
+        self.__log('replace', self._replace)
+        self.__log('stop criteria', self._stop_criteria)
+        self.__log('initialize', self._initialize)
 
     def initialize(self):
         if self.verbose:
-            print '[Genetic Algorithm] initialize:'
+            self.__log("initialize")
         self._initialize(self)
         if self.test:
             self._test_initialize()
@@ -83,7 +139,7 @@ class GeneticAlgorithm(object):
 
     def crossover(self, selection_ids):
         if self.verbose:
-            print '[Genetic Algorithm] crossover: selection_ids', selection_ids
+            self.__log('crossover: selection ids', selection_ids)
         children = self._crossover(self, self.individuals, selection_ids)
         if self.test:
             self._test_crossover(selection_ids, self.individuals, children)
@@ -94,7 +150,7 @@ class GeneticAlgorithm(object):
 
     def select(self, size):
         if self.verbose:
-            print '[Genetic Algorithm] selection: size', size
+            self.__log('selection: size', size)
         selection_ids = self._select(self, self.individuals, size)
         if self.test:
             self._test_select(self.individuals, size, selection_ids)
@@ -107,7 +163,7 @@ class GeneticAlgorithm(object):
 
     def stop_criteria(self):
         if self.verbose:
-            print '[Genetic Algorithm] stop_criteria:'
+            self.__log("stop criteria")
         do_stop = self._stop_criteria(self)
         if self.test:
             self._test_stop_criteria(do_stop)
@@ -119,7 +175,7 @@ class GeneticAlgorithm(object):
 
     def evaluate(self, needs_evaluated):
         if self.verbose:
-            print '[Genetic Algorithm] evaluate:'
+            self.__log("evaluate")
         evaled = self._evaluate(self, needs_evaluated)
         if self.test:
             self._test_evaluate(needs_evaluated)
@@ -130,7 +186,7 @@ class GeneticAlgorithm(object):
 
     def replace(self, selection_ids, children):
         if self.verbose:
-            print '[Genetic Algorithm] replace: selection_ids', selection_ids
+            self.__log('replace: selection ids', selection_ids)
         do_select = self._replace(self, selection_ids, children)
         if self.test:
             self._test_replace(selection_ids, children, do_select)
@@ -141,7 +197,7 @@ class GeneticAlgorithm(object):
 
     def mutate(self, selection_ids, children):
         if self.verbose:
-            print '[Genetic Algorithm] mutate: selection_ids', selection_ids
+            self.__log('mutate: selection ids', selection_ids)
         mutants = self._mutate(self, selection_ids, children)
         if self.test:
             self._test_mutate(selection_ids, children, mutants)
@@ -151,35 +207,14 @@ class GeneticAlgorithm(object):
         pass
 
     def __iter__(self):
-        self.initialize()
-        if self.verbose:
-            self._log()
+        return self.runloop()
 
-        yield self
-        while True: # Generation Loop
-            self.generation += 1
-            self.evaluate(self.individuals)
-            if self.stop_criteria():
-                break
+    def runloop(self):
+        return self._runloop(self)
 
-            self.selection = 0
-            while True: # Selection Loop
-                selection = self.select(self._crossover.nary)
-                children = self.crossover(selection)
-                children = self.mutate(selection, children)
-                if self.replace(selection, children):
-                    break
-                self.selection += 1
-            # end Selection Loop
-
-            yield self
-            if self.test:
-                self._test_iter()
-
-            self.individuals = self.next_generation
-            self.next_generation = list()
-            # end Generation Loop
+    def run(self):
+        for ga in self:
+            pass
 
     def _test_iter(self):
         self.verify()
-

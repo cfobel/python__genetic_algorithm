@@ -12,7 +12,7 @@ def null_mutation(ga, selection_ids, children):
     Selection Methods
 """
 
-def tournament_select(tournament_size, maximize=False):
+def tournament_select(tournament_size, probability=1.0, maximize=False):
 
     def _tournament_select(ga, individuals, size, verbose=False):
         assert(tournament_size > 0)
@@ -29,10 +29,21 @@ def tournament_select(tournament_size, maximize=False):
             if verbose:
                 print 'Competitors', tournament
             tournament_map = [(individuals[id_], id_) for id_ in tournament]
+
+            _max = max(tournament_map, key=lambda x: x[0].fitness)
+            _min = min(tournament_map, key=lambda x: x[0].fitness)
+
             if maximize:
-                winner = max(tournament_map, key=lambda x: x[0].fitness)
+                if ga.random() < probability:
+                    winner = _max
+                else:
+                     winner = _min
             else:
-                winner = min(tournament_map, key=lambda x: x[0].fitness)
+                if ga.random() < probability:
+                    winner = _min
+                else:
+                    winner = _max
+
             if verbose:
                 print 'Winner', winner[1]
             selection_ids.append(winner[1])
@@ -122,7 +133,7 @@ class StopBestNonImproving(object):
             self.choice_fn = min
 
     def __call__(self, ga):
-        fitness = self.choice_fn(s.fitness for s in ga.individuals)
+        fitness = self.choice_fn([s.fitness for s in ga.individuals])
         if self.previous and abs(fitness - self.previous) <= self.threshold:
             self.count += 1
         self.previous = fitness
