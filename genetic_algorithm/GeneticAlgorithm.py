@@ -5,7 +5,7 @@ import random
 
 class Individual(object):
     id_counter = 0
-    def __init__(self, chromosome, id_=None, fitness=None):
+    def __init__(self, chromosome, fitness=None, id_=None):
         self.chromosome = chromosome
         self.fitness = fitness
         if id_ is None:
@@ -27,6 +27,7 @@ def SimpleRunLoop(Ga):
 
     while True: # Generation Loop
         Ga.generation += 1
+        Ga.listener(Ga, SimpleRunLoop)
         Ga.evaluate(Ga.individuals)
         if Ga.stop_criteria():
             break
@@ -67,6 +68,15 @@ class GeneticAlgorithm(object):
         self.selection = 0
         self.maximize = maximize
         self.listener = listener
+
+        self.data_map = dict(mutation=dict(),
+                             crossover=dict(),
+                             selection=dict(),
+                             replication=dict(),
+                             evaluation=dict(),
+                             stop_criteria=dict(),
+                             initialize=dict(),
+                             run_loop=dict())
 
         self._runloop = runloop
         self._mutate = mutate

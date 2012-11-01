@@ -1,5 +1,20 @@
 import numpy as np
 import time
+from GeneticAlgorithm import Individual
+
+
+
+class null_crossover(object):
+    def __init__(self, *args, **kwargs):
+        self.num_xovers = 0
+        self.parent_mean = 0
+        self.child_mean = 0
+        self.moves = 0
+        self.delta_cost = 0
+        self.nary = 1
+
+    def __call__(self, ga, individuals, selection_ids):
+        return [Individual(individuals[s].chromosome.copy()) for s in selection_ids]
 
 """
     Mutators
@@ -11,9 +26,14 @@ def null_mutation(ga, selection_ids, children):
 """
     Selection Methods
 """
+def null_selection(ga, individuals, size, verbose=False):
+    selection_ids = xrange(min(size, len(individuals)))
+    return selection_ids
 
 def tournament_select(tournament_size, probability=1.0, maximize=False):
-
+    """
+        probability that the best will be chosen.
+    """
     def _tournament_select(ga, individuals, size, verbose=False):
         assert(tournament_size > 0)
         assert(len(individuals) >= tournament_size)
@@ -122,15 +142,12 @@ def stop_deviation(limit):
     return _stop_deviation
 
 class StopBestNonImproving(object):
-    def __init__(self, limit, threshold, maximize=False):
+    def __init__(self, limit, threshold, population_reference=np.mean):
         self.limit = limit
         self.count = 0
         self.previous = None
         self.threshold=threshold
-        if maximize:
-            self.choice_fn = max
-        else:
-            self.choice_fn = min
+        self.choice_fn = population_reference
 
     def __call__(self, ga):
         fitness = self.choice_fn([s.fitness for s in ga.individuals])
